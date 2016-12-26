@@ -1,0 +1,93 @@
+---
+title: "regression"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+data(state)
+
+statedata = cbind(data.frame(state.x77), state.abb, state.area, state.center,  state.division, state.name, state.region)
+str(statedata)
+```
+
+```{r}
+## data exploration
+## this with ouliers is the map of US
+plot(statedata$x,statedata$y)
+
+
+```
+```{r}
+tapply(statedata$HS.Grad, statedata$state.region, mean)
+```
+```{r}
+boxplot(statedata$Murder~statedata$state.region)
+```
+
+
+## there is a outlier in northeast region , suggesting a huge murder rate in certain area
+```{r}
+
+max_murder=subset(statedata,statedata$state.region=="Northeast"&statedata$Murder>10)
+
+max_murder$state.name
+```
+
+## trying to build a model to predict avg. life expectancy
+```{r}
+expectancy_model=lm(Life.Exp~Population+Area+Illiteracy+Murder+HS.Grad+Income+Frost,data=statedata)
+summary(expectancy_model)
+```
+```{r}
+plot(statedata$Income, statedata$Life.Exp)
+```
+
+## sense some form multicollinearity
+## doing backward variable selection
+```{r}
+expectancy_model1=lm(Life.Exp~Population+Illiteracy+Murder+HS.Grad+Income+Frost,data=statedata)
+summary(expectancy_model1)
+```
+```{r}
+expectancy_model2=lm(Life.Exp~Population+Murder+HS.Grad+Income+Frost,data=statedata)
+summary(expectancy_model2)
+```
+```{r}
+expectancy_model3=lm(Life.Exp~Population+Murder+HS.Grad+Frost,data=statedata)
+summary(expectancy_model3)
+```
+```{r}
+prediction=predict(expectancy_model3)
+sort(predicition)
+
+```
+```{r}
+sort(abs(expectancy_model3$residuals))
+
+```
+
