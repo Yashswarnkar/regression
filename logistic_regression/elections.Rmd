@@ -1,0 +1,87 @@
+---
+title: "presidential_elections"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+
+```{r}
+polling = read.csv("PollingData.csv")
+str(polling)
+```
+
+## we observe quite alot of missing data and only 145 observations
+```{r}
+table(polling$Year)
+```
+## in 2012 the polling team were pretty sure about the 5 states
+```{r}
+library(mice)
+library(Rcpp)
+simple_data=polling[c("Rasmussen","SurveyUSA","DiffCount","PropR")]
+summary(simple_data)
+
+```
+## what I done is made a simple data frame and will be using it for multiple data imputation
+```{r}
+set.seed(144)
+imputed=complete(mice(simple_data))
+summary(imputed)
+```
+
+```{r}
+polling$SurveyUSA=imputed$SurveyUSA
+polling$Rasmussen=imputed$Rasmussen
+summary(polling)
+```
+## now I am going to make my smart  model before using logistic regression. We will use test data as polls for year 2012 and training data set as for year 2008 and 2004
+## I am going to use Rasmussen variable to predict the outcome. This forms the baseline model
+```{r}
+train=subset(polling,Year==2004|Year==2008)
+test=subset(polling,Year==2012)
+table(train$Republican,sign(train$Rasmussen))
+
+```
+
+```{r}
+cor(train[c("SurveyUSA","Rasmussen","DiffCount","PropR","Republican")])
+```
+
+```{r}
+mod1=glm(Republican~PropR,data=train)
+summary(mod1)
+```
+
+```{r}
+pred1=predict(mod1,type="response")
+table(train$Republican,pred1>0.5)
+
+```
+```{r}
+mod2=glm(Republican~DiffCount+SurveyUSA,data=train)
+pred2=predict(mod2,type="response")
+table(train$Republican,pred2>0.5)
+
+```
+```{r}
+summary(mod2)
+```
+
+
+
+
