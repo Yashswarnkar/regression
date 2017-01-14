@@ -1,0 +1,97 @@
+---
+title: "loan_repayment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+loans=read.csv("loans.csv")
+new_loans=loans
+str(loans)
+```
+```{r}
+not_paid=nrow(subset(loans,not.fully.paid==1))/nrow(loans)
+not_paid
+```
+```{r}
+summary(loans)
+```
+## doing data imputations
+```{r}
+library(mice)
+library(Rcpp)
+set.seed(144)
+
+vars.for.imputation = setdiff(names(new_loans), "not.fully.paid")
+
+imputed = complete(mice(new_loans[vars.for.imputation]))
+
+new_loans[vars.for.imputation] = imputed
+```
+
+```{r}
+loans=new_loans
+library(caTools)
+set.seed(144)
+split=sample.split(loans$not.fully.paid,0.7)
+train = subset(loans, split == TRUE)
+
+test = subset(loans, split == FALSE)
+
+```
+##making a glm model
+
+```{r}
+mod = glm(not.fully.paid~., data=train, family="binomial")
+
+summary(mod)
+```
+```{r}
+test$predicted.risk=predict(mod,newdata=test,type="response")
+table(test$not.fully.paid,test$predicted.risk>0.5)
+```
+```{r}
+library(ROCR)
+
+pred = prediction(test$predicted.risk, test$not.fully.paid)
+
+as.numeric(performance(pred, "auc")@y.values)
+```
+
+```{r}
+bivariate = glm(not.fully.paid~int.rate, data=train, family="binomial")
+
+summary(bivariate)
+```
+
+```{r}
+prediction = predict(bivariate,newdata = test,type="response")
+summary(prediction)
+```
+```{r}
+pred1 = prediction(prediction, test$not.fully.paid)
+
+as.numeric(performance(pred1, "auc")@y.values)
+```
+
+```{r}
+test$profit = exp(test$int.rate*3) - 1
+
+test$profit[test$not.fully.paid == 1] = -1
+
+```
+

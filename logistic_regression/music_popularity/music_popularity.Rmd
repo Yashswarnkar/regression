@@ -1,0 +1,78 @@
+---
+title: "music"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+## Including Plots
+
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+music_poll=read.csv("songs.csv")
+table(music_poll$year)
+```
+```{r}
+str(music_poll)
+```
+```{r}
+michael_jackson=subset(music_poll,artistname=="Michael Jackson")
+str(michael_jackson)
+```
+```{r}
+songs_MJ=subset(michael_jackson,Top10==1)
+songs_MJ$songtitle
+```
+```{r}
+table(music_poll$timesignature)
+```
+```{r}
+x=which.max(music_poll$tempo)
+music_poll$songtitle[x]
+```
+## dividing data into testing and training set
+
+```{r}
+train=subset(music_poll,year<=2009)
+test=subset(music_poll,year==2010)
+str(train)
+```
+
+```{r}
+nonvars = c("year", "songtitle", "artistname", "songID", "artistID")
+train=train[ , !(names(train) %in% nonvars)]
+test=test[ , !(names(test) %in% nonvars)]
+mod1=glm(Top10~.,data=train,famil=binomial)
+summary(mod1)
+```
+```{r}
+cor(train$loudness,train$energy)
+```
+
+```{r}
+mod2=glm(Top10~.-loudness,data=train,family=binomial)
+summary(mod2)
+```
+```{r}
+mod3=glm(Top10~.-energy,data=train,family=binomial)
+summary(mod3)
+```
+```{r}
+predictions=predict(mod3,newdata=test,type="response")
+table(test$Top10,predictions>=0.45)
+```
+
